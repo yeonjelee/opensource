@@ -14,7 +14,7 @@ const HomeScreen = ({ navigation }) => {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         mixedContentMode="always"
-        style={{width: 250, height: 280}}
+        style={{width: 280, height: 350}}
         onLoadStart={() => console.log('📡 WebView Load Started')}
         onLoadEnd={() => console.log('✅ WebView Load Ended')}
         onError={(e) => console.warn('WebView error:', e.nativeEvent)}
