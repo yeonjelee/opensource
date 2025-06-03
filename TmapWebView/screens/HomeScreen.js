@@ -11,9 +11,12 @@ const HomeScreen = ({ navigation }) => {
         source={{uri: 'file:///android_asset/tmap.html'}}
         originWhitelist={['*']}
         allowFileAccess = {true}
-        javaScriptEnabled = {true}
+        javaScriptEnabled={true}
         domStorageEnabled={true}
+        mixedContentMode="always"
         style={{width: 250, height: 280}}
+        onLoadStart={() => console.log('📡 WebView Load Started')}
+        onLoadEnd={() => console.log('✅ WebView Load Ended')}
         onError={(e) => console.warn('WebView error:', e.nativeEvent)}
         onHttpError= {(e) => console.warn('HTTP error:', e.nativeEvent.statusCode)}
       />
