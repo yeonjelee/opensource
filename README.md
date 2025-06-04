@@ -1,53 +1,97 @@
-# opensource
+This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
-# 오픈소스 기말대체 팀 프로젝트 안내
+# Getting Started
 
-## 🔍 교수님 말씀 요약
+> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
-### ✅ 프로젝트 운영 방식
-- **깃허브(GitHub) 꾸준히 사용**  
-  → 단순 업로드가 아닌, 의미 있는 코드 업로드 필수  
-  → 교수님이 히스토리 모두 확인하심
+## Step 1: Start Metro
 
-- **인공지능(AI) 요소 포함 – 딥러닝 사용 필수**
-  - 학습 데이터 기반 모델 학습 구조 설계
-  - 학습 데이터는 직접 제작하거나 실제 존재하는 것 활용 가능
-  - YOLO 등 유명 모델 사용 가능하지만, **학습 데이터의 질이 중요**
-    → 잘못된 데이터는 이상한 결과를 유도함
+First, you will need to run **Metro**, the JavaScript build tool for React Native.
 
-- **사회적 가치가 있는 주제에 더 높은 평가**
-  - 예: 키오스크 접근성, 장애인 보조 시스템, 여성 1인 가구 보안 문제 등
+To start the Metro dev server, run the following command from the root of your React Native project:
 
-### 🔧 역할 분담 및 역량 평가
-- "자료조사 열심히 했다"는 점수로 이어지지 않음
-- 각자의 **역량**을 살려 **서로 다른 역할**을 맡는 것이 좋음
-  → 같은 기능을 다 같이 하지 않도록!
+```sh
+# Using npm
+npm start
 
-- 요즘은 **Python 기반의 AI 코드**가 대세
-  → 프로젝트에 적절한 AI 툴 선정이 핵심
+# OR using Yarn
+yarn start
+```
 
-### 🖥️ UI 구현
-- UI는 **기능 위주**로 구현 (2학년 기준 평가)
-  - 화려한 UI가 점수를 보장하지 않음
-  - 기능만 제대로 보여주면 충분함
+## Step 2: Build and run your app
 
----
+With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
 
-## 📄 제출물 안내
+### Android
 
-- **제안서**: 3~4페이지 (중간 점검용 / 피드백 받기 위한 자료)
-- **결과보고서 + 시연 영상**
-  - 일반화가 어려운 상황도 그대로 포함
-  - **잘 되는 부분만 보여주는 것이 아니라 약한 부분도 첨부**
-    → 오히려 **정직하게 보여주는 것이 높은 점수**로 이어짐
+```sh
+# Using npm
+npm run android
 
-- **협업 증빙 자료**
-  - GitHub 기록 (커밋 로그, 브랜치 활용 등)
-  - 프로젝트 문서화 (Document)
+# OR using Yarn
+yarn android
+```
 
----
+### iOS
 
-## 📌 참고 사항
-- GitHub를 단순 백업 공간이 아닌 **협업의 중심 플랫폼**으로 사용할 것
-- 디버깅, 데이터 수집/전처리, 인터페이스 설계 등 **과정 중심** 프로젝트 진행
+For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
 
+The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+
+```sh
+bundle install
+```
+
+Then, and every time you update your native dependencies, run:
+
+```sh
+bundle exec pod install
+```
+
+For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+
+```sh
+# Using npm
+npm run ios
+
+# OR using Yarn
+yarn ios
+```
+
+If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+
+This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+
+## Step 3: Modify your app
+
+Now that you have successfully run the app, let's make changes!
+
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+
+When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+
+- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
+- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+
+## Congratulations! :tada:
+
+You've successfully run and modified your React Native App. :partying_face:
+
+### Now what?
+
+- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
+- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+
+# Troubleshooting
+
+If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+
+# Learn More
+
+To learn more about React Native, take a look at the following resources:
+
+- [React Native Website](https://reactnative.dev) - learn more about React Native.
+- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
+- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
+- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
+- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
