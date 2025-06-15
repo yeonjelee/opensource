@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Tmap Navigation</title>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=uR8rLdPPevlPKECWWLBBaWQLGYHBXHr9pEEm6dv3"></script>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+    #map_div {
+        width: 100%;
+        height: 100vh;
+    }
+    #result {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        z-index: 1000;
+    }
+    #controls {
+        position: absolute;
+        bottom: 20px;
+        left: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: none;
+    }
+    .input-group {
+        margin-bottom: 10px;
+    }
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .input-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    .btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    .btn:hover {
+        opacity: 0.8;
+    }
+    #toggle-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        z-index: 1001;
+        font-size: 12px;
+    }
+</style>
+<script type="text/javascript">
+    var map;
+    var marker_s, marker_e;
+    var totalMarkerArr = [];
+    var drawInfoArr = [];
+    var resultdrawArr = [];
+    var currentStartCoord = null;
+    var currentEndCoord = null;
+
+    // 기본 좌표 (서울 시청 근처)
+    var defaultStart = {lat: 37.564991, lng: 126.983937, name: "출발지"};
+    var defaultEnd = {lat: 37.566158, lng: 126.988940, name: "도착지"};
+
+    function initTmap() {
+        // 지도 초기화
+        map = new Tmapv2.Map("map_div", {
+            center: new Tmapv2.LatLng(37.56520450, 126.98702028),
+            width: "100%",
+            height: "100vh",
+            zoom: 15,
+            zoomControl: true,
+            scrollwheel: true
+        });
+
+        // 기본 경로로 시작
+        setRoute(defaultStart, defaultEnd);
+
+        // 웹뷰와의 통신을 위한 전역 함수 등록
+        window.setCustomRoute = setCustomRoute;
+        window.getCurrentLocation = getCurrentLocation;
+    }
+
+    function setRoute(startCoord, endCoord) {
+        currentStartCoord = startCoord;
+        currentEndCoord = endCoord;
+
+        // 기존 마커 제거
+        clearMarkers();
+
+        // 새 마커 추가
+        addMarkers(startCoord, endCoord);
+
+        // 경로 탐색
+        searchRoute(startCoord, endCoord);
+    }
+
+    function setCustomRoute(startLat, startLng, endLat, endLng, startName = "출발지", endName = "도착지") {
+        var start = {lat: parseFloat(startLat), lng: parseFloat(startLng), name: startName};
+        var end = {lat: parseFloat(endLat), lng: parseFloat(endLng), name: endName};
+        
+        setRoute(start, end);
+        
+        // 지도 중심을 새로운 경로의 중점으로 이동
+        var centerLat = (start.lat + end.lat) / 2;
+        var centerLng = (start.lng + end.lng) / 2;
+        map.setCenter(new Tmapv2.LatLng(centerLat, centerLng));
+    }
+
+    function clearMarkers() {
+        if (marker_s) {
+            marker_s.setMap(null);
+        }
+        if (marker_e) {
+            marker_e.setMap(null);
+        }
+        
+        // 기존 라인 제거
+        if (resultdrawArr.length > 0) {
+            for (var i in resultdrawArr) {
+                resultdrawArr[i].setMap(null);
+            }
+            resultdrawArr = [];
+        }
+    }
+
+    function addMarkers(startCoord, endCoord) {
+        // 출발지 마커
+        marker_s = new Tmapv2.Marker({
+            position: new Tmapv2.LatLng(startCoord.lat, startCoord.lng),
+            icon: "/upload/tmap/marker/pin_r_m_s.png",
+            iconSize: new Tmapv2.Size(24, 38),
+            map: map
+        });
+
+        // 도착지 마커
+        marker_e = new Tmapv2.Marker({
+            position: new Tmapv2.LatLng(endCoord.lat, endCoord.lng),
+            icon: "/upload/tmap/marker/pin_r_m_e.png",
+            iconSize: new Tmapv2.Size(24, 38),
+            map: map
+        });
+    }
+
+    function searchRoute(startCoord, endCoord) {
+        var headers = {};
+        headers["appKey"] = "uR8rLdPPevlPKECWWLBBaWQLGYHBXHr9pEEm6dv3"; // 실제 앱키로 변경 필요
+
+        $.ajax({
+            method: "POST",
+            headers: headers,
+            url: "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json&callback=result",
+            async: false,
+            data: {
+                "startX": startCoord.lng.toString(),
+                "startY": startCoord.lat.toString(),
+                "endX": endCoord.lng.toString(),
+                "endY": endCoord.lat.toString(),
+                "reqCoordType": "WGS84GEO",
+                "resCoordType": "EPSG3857",
+                "startName": startCoord.name,
+                "endName": endCoord.name
+            },
+            success: function(response) {
+                var resultData = response.features;
+
+                // 결과 출력
+                var tDistance = "총 거리: " + ((resultData[0].properties.totalDistance) / 1000).toFixed(1) + "km";
+                var tTime = " | 총 시간: " + ((resultData[0].properties.totalTime) / 60).toFixed(0) + "분";
+                
+                $("#result").html(tDistance + tTime);
+
+                // 기존 그려진 라인 초기화
+                if (resultdrawArr.length > 0) {
+                    for (var i in resultdrawArr) {
+                        resultdrawArr[i].setMap(null);
+                    }
+                    resultdrawArr = [];
+                }
+
+                drawInfoArr = [];
+
+                for (var i in resultData) {
+                    var geometry = resultData[i].geometry;
+                    var properties = resultData[i].properties;
+
+                    if (geometry.type == "LineString") {
+                        for (var j in geometry.coordinates) {
+                            var latlng = new Tmapv2.Point(
+                                geometry.coordinates[j][0],
+                                geometry.coordinates[j][1]
+                            );
+                            var convertPoint = new Tmapv2.Projection.convertEPSG3857ToWGS84GEO(latlng);
+                            var convertChange = new Tmapv2.LatLng(
+                                convertPoint._lat,
+                                convertPoint._lng
+                            );
+                            drawInfoArr.push(convertChange);
+                        }
+                    }
+                }
+                drawLine(drawInfoArr);
+            },
+            error: function(request, status, error) {
+                console.log("Error: " + request.status + " - " + error);
+                $("#result").html("경로 탐색 실패: " + error);
+            }
+        });
+    }
+
+    function drawLine(arrPoint) {
+        var polyline = new Tmapv2.Polyline({
+            path: arrPoint,
+            strokeColor: "#FF0000",
+            strokeWeight: 6,
+            map: map
+        });
+        resultdrawArr.push(polyline);
+    }
+
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                
+                // React Native로 현재 위치 전달
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'currentLocation',
+                        data: { lat: lat, lng: lng }
+                    }));
+                }
+            });
+        }
+    }
+
+    function toggleControls() {
+        var controls = document.getElementById('controls');
+        if (controls.style.display === 'none' || controls.style.display === '') {
+            controls.style.display = 'block';
+            document.getElementById('toggle-controls').textContent = '숨기기';
+        } else {
+            controls.style.display = 'none';
+            document.getElementById('toggle-controls').textContent = '경로 설정';
+        }
+    }
+
+    function applyRoute() {
+        var startLat = document.getElementById('startLat').value;
+        var startLng = document.getElementById('startLng').value;
+        var endLat = document.getElementById('endLat').value;
+        var endLng = document.getElementById('endLng').value;
+        var startName = document.getElementById('startName').value || "출발지";
+        var endName = document.getElementById('endName').value || "도착지";
+
+        if (startLat && startLng && endLat && endLng) {
+            setCustomRoute(startLat, startLng, endLat, endLng, startName, endName);
+            toggleControls();
+        } else {
+            alert('모든 좌표를 입력해주세요.');
+        }
+    }
+
+    function resetToDefault() {
+        setRoute(defaultStart, defaultEnd);
+        map.setCenter(new Tmapv2.LatLng(37.56520450, 126.98702028));
+        toggleControls();
+    }
+
+    // 페이지 로드 시 초기화
+    window.onload = function() {
+        initTmap();
+    };
+</script>
+</head>
+<body>
+    <div id="map_div"></div>
+    <div id="result"></div>
+    
+    <button id="toggle-controls" onclick="toggleControls()">경로 설정</button>
+    
+    <div id="controls">
+        <div class="input-group">
+            <label>출발지명:</label>
+            <input type="text" id="startName" placeholder="출발지명 (선택사항)">
+        </div>
+        <div class="input-group">
+            <label>출발지 위도:</label>
+            <input type="number" id="startLat" step="any" placeholder="37.564991">
+        </div>
+        <div class="input-group">
+            <label>출발지 경도:</label>
+            <input type="number" id="startLng" step="any" placeholder="126.983937">
+        </div>
+        <div class="input-group">
+            <label>도착지명:</label>
+            <input type="text" id="endName" placeholder="도착지명 (선택사항)">
+        </div>
+        <div class="input-group">
+            <label>도착지 위도:</label>
+            <input type="number" id="endLat" step="any" placeholder="37.566158">
+        </div>
+        <div class="input-group">
+            <label>도착지 경도:</label>
+            <input type="number" id="endLng" step="any" placeholder="126.988940">
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="applyRoute()">경로 적용</button>
+            <button class="btn btn-secondary" onclick="resetToDefault()">기본값 복원</button>
+        </div>
+    </div>
+</body>
+</html>
