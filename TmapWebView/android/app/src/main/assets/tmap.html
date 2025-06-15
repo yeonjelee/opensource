@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>Simple TMap</title>
+  <title>Simple TMap with User Location</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     html, body, #map_div {
@@ -12,18 +12,38 @@
       height: 100%;
     }
   </style>
-<script
-	src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=MYAPIKEY"></script>  <script>
-    function initTmap() {
+  <script
+    src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=uR8rLdPPevlPKECWWLBBaWQLGYHBXHr9pEEm6dv3"></script>
+  <script>
+    function initTmap(lat, lng) {
       const map = new Tmapv3.Map("map_div", {
-        center: new Tmapv3.LatLng(37.56520450, 126.98702028),
+        center: new Tmapv3.LatLng(lat, lng),
         width: "100%",
         height: "100%",
         zoom: 16
       });
     }
 
-    window.onload = initTmap;
+    function onGeoSuccess(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      initTmap(lat, lng);
+    }
+
+    function onGeoError(error) {
+      console.error("Geolocation error:", error);
+      // 에러 발생 시, 기본 좌표로 초기화 (기존 지정 좌표)
+      initTmap(37.56520450, 126.98702028);
+    }
+
+    window.onload = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(onGeoSuccess, onGeoError);
+      } else {
+        console.warn("Geolocation not supported by this browser.");
+        initTmap(37.56520450, 126.98702028);
+      }
+    };
   </script>
 </head>
 <body>
