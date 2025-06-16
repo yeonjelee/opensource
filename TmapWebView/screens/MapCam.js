@@ -283,11 +283,15 @@ const MapCam = ({ navigation }) => {
       <View style={styles.bottomSection}>
         <WebView
           ref={webViewRef}
-          source={{ uri: 'file:///android_asset/tmap.html' }}
+          source={{ uri: 'file:///android_asset/navigation.html' }}
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
           geolocationEnabled={true}
+          originWhitelist={['*']}
+          mixedContentMode='always'
           onMessage={handleWebViewMessage}
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
@@ -297,6 +301,8 @@ const MapCam = ({ navigation }) => {
             const { nativeEvent } = syntheticEvent;
             console.error('WebView HTTP Error:', nativeEvent);
           }}
+          androidLayerType='software'
+          renderToHardwareTextureAndroid={false}
         />
         
         {/* 경로 설정 버튼들 */}
