@@ -166,22 +166,21 @@
     }
 
     function addMarkers(startCoord, endCoord) {
-        // 출발지 마커
         marker_s = new Tmapv2.Marker({
             position: new Tmapv2.LatLng(startCoord.lat, startCoord.lng),
-            icon: "/upload/tmap/marker/pin_r_m_s.png",
+            icon: "file:///android_asset/tmap_markers/pin_r_m_s.png", // 절대 경로 사용
             iconSize: new Tmapv2.Size(24, 38),
             map: map
         });
 
-        // 도착지 마커
+  // 도착지 마커
         marker_e = new Tmapv2.Marker({
             position: new Tmapv2.LatLng(endCoord.lat, endCoord.lng),
-            icon: "/upload/tmap/marker/pin_r_m_e.png",
+            icon: "file:///android_asset/tmap_markers/pin_r_m_e.png", // 절대 경로 사용
             iconSize: new Tmapv2.Size(24, 38),
             map: map
         });
-    }
+}
 
     function searchRoute(startCoord, endCoord) {
         var headers = {};
