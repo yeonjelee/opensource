@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Camera, useCameraDevices } from 'react-native-vision-camera';
 import { WebView } from 'react-native-webview';
+import Tts from 'react-native-tts';
 
 const MapCam = ({ navigation }) => {
   const camera = useRef(null);
@@ -60,6 +61,10 @@ const MapCam = ({ navigation }) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       console.log('WebView Message:', message);
+      
+      if (message.type === 'offRouteRerouted') {
+      Tts.speak('새로운 경로를 찾았습니다');
+    }
       
       if (message.type === 'currentLocation') {
         console.log('현재 위치:', message.data);
