@@ -257,6 +257,64 @@
         });
         resultdrawArr.push(polyline);
     }
+    function getDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) ** 2 +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+    function checkOffRoute(currentLat, currentLng) {
+    let minDistance = Infinity;
+
+    for (let point of drawInfoArr) {
+        const dist = getDistance(currentLat, currentLng, point.lat(), point.lng());
+        if (dist < minDistance) minDistance = dist;
+    }
+
+    if (minDistance > 10) {
+        const newStart = {
+            lat: currentLat,
+            lng: currentLng,
+            name: "재탐색 출발지"
+        };
+
+        // 새 경로 자동 재탐색
+        setRoute(newStart, currentEndCoord);
+
+        // React Native에 경로 벗어남 메시지 보내기 (선택)
+        if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'offRouteRerouted',
+                newStart: newStart,
+                distance: minDistance
+            }));
+        }
+    }
+} // ← 이 마지막 닫는 중괄호 있어야 오류 안 나
+
+
+    function startOffRouteMonitoring() {
+        setInterval(() => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    checkOffRoute(lat, lng);
+                });
+            }
+        }, 5000);
+    }
+
+
+
+
 
     function getCurrentLocation() {
         if (navigator.geolocation) {
@@ -311,6 +369,7 @@
     // 페이지 로드 시 초기화
     window.onload = function() {
         initTmap();
+        startOffRouteMonitoring(); 
     };
 </script>
 </head>
