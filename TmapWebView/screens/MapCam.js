@@ -10,22 +10,17 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
-import { Camera, useCameraDevices, useFrameProcessor } from 'react-native-vision-camera';
+import { Camera, useCameraDevices } from 'react-native-vision-camera';
 import { WebView } from 'react-native-webview';
 import Tts from 'react-native-tts';
-import { TFLiteModel } from 'react-native-fast-tflite';
-import { Skia } from '@shopify/react-native-skia'; // skia 프레임 변환 시 사용 가능
-import { runOnJS } from 'react-native-reanimated';
-
-
 
 const MapCam = ({ navigation }) => {
   const camera = useRef(null);
   const webViewRef = useRef(null);
   const devices = useCameraDevices();
   const device = devices.back || devices.find(d => d.position === 'back');
-  const modelRef = useRef(null);
-
+  const [hasPermission, setHasPermission] = useState(false);
+  
   // 경로 설정을 위한 상태
   const [showRouteInput, setShowRouteInput] = useState(false);
   const [startLat, setStartLat] = useState('37.564991');
@@ -36,148 +31,41 @@ const MapCam = ({ navigation }) => {
   const [endName, setEndName] = useState('도착지');
   const [searchMode, setSearchMode] = useState(true); // true: 건물명 검색, false: 직접 좌표 입력
   const [isSearching, setIsSearching] = useState(false);
-  const [hasPermission, setHasPermission] = useState(false);
-  const [lastLabel, setLastLabel] = useState(null);
 
   const requestPermissions = async () => {
     try {
       if (Platform.OS === 'android') {
-        // 카메라 권한 요청
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.CAMERA
         );
         const cameraGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
         setHasPermission(cameraGranted);
-
         if (!cameraGranted) {
           Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
         }
-
-        // 오디오 권한도 요청 (Android용)
-        await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
-        );
-
       } else {
-        // iOS용 카메라 권한 요청
         const permission = await Camera.requestCameraPermission();
         setHasPermission(permission === 'authorized');
       }
     } catch (error) {
-      console.error('권한 요청 중 오류:', error);
+      console.error('카메라 권한 요청 실패:', error);
     }
   };
 
   useEffect(() => {
-    requestPermissions();  // ✅ 통합된 함수 호출
+    requestPermissions();
   }, []);
-
-
-  useEffect(() => {
-    const loadModel = async () => {
-      const model = await TFLiteModel.createModel('best_model.tflite', {
-        labels: 'labelmap.txt',
-        numThreads: 2,
-      });
-      modelRef.current = model;
-    };
-
-    loadModel;
-  }, []);
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (camera.current && modelRef.current) {
-        try {
-          const photo = await camera.current.takePhoto();
-          const result = await modelRef.current.predict({
-            path: photo.path,
-          });
-
-          if (result && result.length > 0) {
-            const topResult = result[0];
-            console.log(`${topResult.label} 감지됨`);
-            Tts.speak(`${topResult.label} 감지됨`);
-          }
-        } catch (err) {
-          console.warn('예측 실패:', err);
-        }
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // 그 아래에 렌더링 조건 분기
-  if (device == null || !hasPermission) {
-    return <Text>카메라 또는 권한을 기다리는 중...</Text>;
-  }
-
-  const convertFrameToTensor = (frame) => {
-    'worklet';
-    try {
-      const image = Skia.Image.MakeImageFromNV21(
-        frame.planes[0].bytes,
-        frame.width,
-        frame.height
-      );
-
-      if (!image) {
-        console.warn('이미지 생성 실패');
-        return null;
-      }
-
-      const resized = image.resize(224, 224);
-      const pixelData = resized.readPixels();
-
-      return {
-        shape: [1, 224, 224, 3],
-        data: new Uint8Array(pixelData),
-      };
-    } catch (e) {
-      console.warn('Skia 변환 실패:', e);
-      return {
-        shape: [1, 224, 224, 3],
-        data: new Uint8Array(224 * 224 * 3),
-      };
-    }
-  };
-
-  const processFrame = async (frame) => {
-    if (!modelRef.current) return;
-    try {
-      const inputTensor = convertFrameToTensor(frame);
-      if (!inputTensor) return;
-
-      const output = await modelRef.current.predict(inputTensor);
-
-      if (output && output.length > 0) {
-        const topResult = output[0];
-        if (topResult.label !== lastLabelRef.current && topResult.probability > 0.7) {
-          lastLabelRef.current = topResult.label;
-          Tts.speak(`${topResult.label} 앞에 있습니다`);
-        }
-      }
-    } catch (e) {
-      console.warn('예측 실패:', e);
-    }
-  };
-
-  
-
-  if (device == null || !hasPermission) {
-    return <Text>카메라 또는 권한을 기다리는 중...</Text>;
-  }
 
   // WebView에서 메시지를 받는 함수
   const handleWebViewMessage = (event) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       console.log('WebView Message:', message);
-
+      
       if (message.type === 'offRouteRerouted') {
-        Tts.speak('새로운 경로를 찾았습니다');
-      }
-
+      Tts.speak('새로운 경로를 찾았습니다');
+    }
+      
       if (message.type === 'currentLocation') {
         console.log('현재 위치:', message.data);
         // 현재 위치 정보를 활용한 추가 로직 구현 가능
@@ -191,7 +79,7 @@ const MapCam = ({ navigation }) => {
   const searchPOI = async (query) => {
     try {
       console.log('POI 검색 시작:', query);
-
+      
       // Nominatim API 사용 (OpenStreetMap)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' 한국')}&limit=1&addressdetails=1`,
@@ -204,7 +92,7 @@ const MapCam = ({ navigation }) => {
 
       const data = await response.json();
       console.log('검색 결과:', data);
-
+      
       if (data && data.length > 0) {
         const result = data[0];
         return {
@@ -223,9 +111,9 @@ const MapCam = ({ navigation }) => {
             }
           }
         );
-
+        
         const fallbackData = await fallbackResponse.json();
-
+        
         if (fallbackData && fallbackData.length > 0) {
           const result = fallbackData[0];
           return {
@@ -235,7 +123,7 @@ const MapCam = ({ navigation }) => {
             address: result.display_name
           };
         }
-
+        
         throw new Error('검색 결과가 없습니다.');
       }
     } catch (error) {
@@ -244,12 +132,11 @@ const MapCam = ({ navigation }) => {
     }
   };
 
-
   // 카카오 API를 사용한 대안 검색 함수 (주석 처리된 상태로 제공)
   const searchPOIKakao = async (query) => {
     // 카카오 API 키가 필요합니다
     const KAKAO_API_KEY = 'YOUR_KAKAO_REST_API_KEY'; // 실제 키로 변경 필요
-
+    
     try {
       const response = await fetch(
         `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}`,
@@ -261,7 +148,7 @@ const MapCam = ({ navigation }) => {
       );
 
       const data = await response.json();
-
+      
       if (data.documents && data.documents.length > 0) {
         const place = data.documents[0];
         return {
@@ -287,13 +174,13 @@ const MapCam = ({ navigation }) => {
     }
 
     setIsSearching(true);
-
+    
     try {
       console.log('출발지 검색:', startName.trim());
       // 출발지 검색
       const startResult = await searchPOI(startName.trim());
       console.log('출발지 결과:', startResult);
-
+      
       setStartLat(startResult.lat.toString());
       setStartLng(startResult.lng.toString());
 
@@ -301,7 +188,7 @@ const MapCam = ({ navigation }) => {
       // 도착지 검색
       const endResult = await searchPOI(endName.trim());
       console.log('도착지 결과:', endResult);
-
+      
       setEndLat(endResult.lat.toString());
       setEndLng(endResult.lng.toString());
 
@@ -312,12 +199,12 @@ const MapCam = ({ navigation }) => {
         }
         true;
       `;
-
+      
       webViewRef.current?.injectJavaScript(script);
       setShowRouteInput(false);
-
+      
       Alert.alert('성공', `경로가 설정되었습니다.\n출발지: ${startResult.name}\n도착지: ${endResult.name}`);
-
+      
     } catch (error) {
       console.error('검색 실패:', error);
       Alert.alert('검색 실패', error.message || '장소를 찾을 수 없습니다. 다른 키워드로 시도해보세요.');
@@ -339,7 +226,7 @@ const MapCam = ({ navigation }) => {
       }
       true;
     `;
-
+    
     webViewRef.current?.injectJavaScript(script);
     setShowRouteInput(false);
   };
@@ -372,7 +259,7 @@ const MapCam = ({ navigation }) => {
     setEndLng('126.988940');
     setStartName('출발지');
     setEndName('도착지');
-
+    
     const script = `
       if (window.setCustomRoute) {
         window.setCustomRoute(37.564991, 126.983937, 37.566158, 126.988940, "출발지", "도착지");
@@ -391,9 +278,7 @@ const MapCam = ({ navigation }) => {
             style={StyleSheet.absoluteFill}
             device={device}
             isActive={true}
-            photo={true}
-            //frameProcessor={frameProcessor}
-            //frameProcessorFps={1}
+            photo={false}
           />
         ) : (
           <Text style={styles.text}>카메라 준비 중...</Text>
@@ -424,11 +309,11 @@ const MapCam = ({ navigation }) => {
           androidLayerType='software'
           renderToHardwareTextureAndroid={false}
         />
-
+        
         {/* 경로 설정 버튼들 */}
         <View style={styles.controlButtons}>
-          <TouchableOpacity
-            style={styles.button}
+          <TouchableOpacity 
+            style={styles.button} 
             onPress={() => setShowRouteInput(!showRouteInput)}
           >
             <Text style={styles.buttonText}>경로 설정</Text>
@@ -447,7 +332,7 @@ const MapCam = ({ navigation }) => {
         <View style={styles.routeInputContainer}>
           {/* 검색 모드 토글 버튼 */}
           <View style={styles.toggleContainer}>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.toggleButton, searchMode && styles.toggleButtonActive]}
               onPress={() => setSearchMode(true)}
             >
@@ -455,7 +340,7 @@ const MapCam = ({ navigation }) => {
                 건물명 검색
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={[styles.toggleButton, !searchMode && styles.toggleButtonActive]}
               onPress={() => setSearchMode(false)}
             >
@@ -556,10 +441,10 @@ const MapCam = ({ navigation }) => {
               </View>
             </>
           )}
-
+          
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.applyButton, isSearching && styles.disabledButton]}
+            <TouchableOpacity 
+              style={[styles.applyButton, isSearching && styles.disabledButton]} 
               onPress={setRoute}
               disabled={isSearching}
             >
@@ -567,8 +452,8 @@ const MapCam = ({ navigation }) => {
                 {isSearching ? '검색 중...' : '경로 적용'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
+            <TouchableOpacity 
+              style={styles.cancelButton} 
               onPress={() => setShowRouteInput(false)}
             >
               <Text style={styles.buttonText}>취소</Text>
@@ -585,17 +470,15 @@ const MapCam = ({ navigation }) => {
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
+  container: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-  text: {
-    fontSize: 18,
-    color: 'black'
+  text: { 
+    fontSize: 18, 
+    color: 'black' 
   },
   topSection: {
     borderWidth: 1,
