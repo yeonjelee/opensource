@@ -18,7 +18,7 @@ This project is a React Native application that integrates a **real-time camera 
 ## 📱 Main Screens
 
 ### 🏠 1. HomeScreen
-
+![HomeScreen](Images%20for%20README/KakaoTalk_20250621_230051611.png)
 - Displays a **location-based map**
 - Implemented using the **Tmap Raster Map SDK (JavaScript)** embedded via **WebView**
 - On app launch, `Tts.speak` announces:  
@@ -26,12 +26,12 @@ This project is a React Native application that integrates a **real-time camera 
 - Tapping the **"MapCam"** button navigates to the next screen
 
 ### 🗺️ 2. MapCam
-
+![MapCam](Images%20for%20README/KakaoTalk_20250621_211951451_02.png)
 - **Top**: Real-time camera feed powered by `react-native-vision-camera`
 - **Bottom**: Route guidance using **Tmap Vector JS**
 
 **Key features:**
-
+![find new route](Images%20for%20README/KakaoTalk_20250621_211951451_03.png)
 - Users input a **starting point and destination** → route is displayed
 - If deviating more than **10 meters** from the route, **re-routing** is triggered
 - Voice guidance via `react-native-tts`:  
@@ -56,6 +56,7 @@ This project is a React Native application that integrates a **real-time camera 
 | `MapCam.js`            | **Final integrated screen** that combines Tmap route guidance, real-time camera feed, and off-route detection with TTS-based voice re-routing alerts |
 | `Camera/`              | Single-file camera test component                                                               |
 | `README.md.docx`       | Draft documentation for internal reference (not part of the final app)                          |
+| `Images for README/`   | Contains screenshots and visual assets used in the `README.md` to illustrate app features       |
 
 > 🔄 Note: The `Camera_test/` directory was removed in recent commits.
 
